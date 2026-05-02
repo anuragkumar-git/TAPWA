@@ -1,0 +1,758 @@
+import React, { useState, useEffect } from "react";
+import Dexie from "dexie";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import PDFLayout from "../components/pdf/PDFLayout";
+import { dataPage3 } from "../../data/sampleData";
+dataPage3;
+import { toGujarati } from "../../utils/numbers";
+import TimePicker24hr from "../components/TimePicker24hr";
+import MonthSelect from "../components/MonthSelect";
+// --- Database Setup ---
+const db = new Dexie("DiaryDatabase");
+db.version(1).stores({
+  diaries: "++id, month, year", // Indexed fields. Data like travelEntries is stored but doesn't need indexing here.
+});
+
+const MONTHS = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+  // "January",
+  // "February",
+  // "March",
+  // "April",
+  // "May",
+  // "June",
+  // "July",
+  // "August",
+  // "September",
+  // "October",
+  // "November",
+  // "December",
+];
+const YEARS = ["2026", "2027", "2028", "2029", "2030", "2031", "2032"];
+
+const emptyRow = {
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
+  from: "",
+  to: "",
+};
+
+export default function Home2() {
+  const [screen, setScreen] = useState("entry"); // 'entry', 'editor', 'preview'
+  const [currentId, setCurrentId] = useState(null); // Tracks if we are editing an existing diary
+
+  // Fetch all diaries from Dexie
+  const savedDiaries = useLiveQuery(() => db.diaries.toArray()) || [];
+
+  // App State
+  const [meta, setMeta] = useState({ month: "", year: "" });
+  const [travelEntries, setTravelEntries] = useState([]);
+  const [leaveEntries, setLeaveEntries] = useState([]);
+
+  const contentRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: contentRef,
+    documentTitle: `Diary_${meta.month}_${meta.year}`,
+  });
+
+  // Set Default Month/Year
+  const setDefaultMeta = () => {
+    const now = new Date();
+    setMeta({
+      // month: MONTHS[now.getMonth()],
+      month: now.getMonth() + 1,
+      year: now.getFullYear().toString(),
+    });
+  };
+
+  // Run once on load to set defaults
+  useEffect(() => {
+    setDefaultMeta();
+  }, []);
+
+  // --- Handlers ---
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const handleNewDiary = () => {
+    setCurrentId(null);
+    setDefaultMeta();
+    setTravelEntries([]);
+    setLeaveEntries([]);
+    setScreen("editor");
+  };
+
+  const handleEditDiary = (diary) => {
+    setCurrentId(diary.id);
+    setMeta({ month: diary.month, year: diary.year });
+    setTravelEntries(diary.travelEntries || []);
+    setLeaveEntries(diary.leaveEntries || []);
+    setScreen("editor");
+  };
+
+  const user = {
+    name: "રમેશભાઈ અભેસિંહ પટેલ",
+    role: "AHC",
+    badgeNo: "૧૩૫",
+  };
+
+  const handleSave = async () => {
+    const diaryData = {
+      // month: toGujarati(meta.month),
+      month: meta.month,
+      year: meta.year,
+      user,
+      travelEntries,
+      leaveEntries,
+    };
+
+    if (currentId) {
+      await db.diaries.update(currentId, diaryData);
+    } else {
+      await db.diaries.add(diaryData);
+    }
+
+    setScreen("entry");
+  };
+
+  // --- Travel Group Logic ---
+  const addTravelGroup = () => {
+    setTravelEntries([
+      ...travelEntries,
+      {
+        id: generateId(),
+        groupedReason:
+          "મા. માજી મંત્રી શ્રી જયદ્રથસિંહ પરમાર સાહેબના અંગરક્ષક તરીકે ફરજ",
+        groupMode: "સરકારી વાહન",
+        groupDistance: null,
+        rows: [],
+        pendingRow: { ...emptyRow },
+      },
+    ]);
+  };
+
+  const updateTravelGroup = (id, field, value) => {
+    setTravelEntries(
+      travelEntries.map((g) => (g.id === id ? { ...g, [field]: value } : g)),
+    );
+  };
+
+  const updatePendingRow = (groupId, field, value) => {
+    setTravelEntries(
+      travelEntries.map((g) => {
+        if (g.id === groupId)
+          return { ...g, pendingRow: { ...g.pendingRow, [field]: value } };
+        return g;
+      }),
+    );
+  };
+
+  const commitRow = (groupId) => {
+    setTravelEntries(
+      travelEntries.map((g) => {
+        if (g.id === groupId) {
+          // Only add if at least 'from' or 'to' has some data, to prevent blank accidental clicks
+          if (!g.pendingRow.from && !g.pendingRow.to) return g;
+          return {
+            ...g,
+            rows: [...g.rows, { ...g.pendingRow, id: generateId() }],
+            pendingRow: { ...emptyRow }, // Reset the form card
+          };
+        }
+        return g;
+      }),
+    );
+  };
+
+  const removeTravelRow = (groupId, rowId) => {
+    setTravelEntries(
+      travelEntries.map((g) => {
+        if (g.id === groupId)
+          return { ...g, rows: g.rows.filter((r) => r.id !== rowId) };
+        return g;
+      }),
+    );
+  };
+
+  // --- Leave Logic ---
+  const addLeaveEntry = () => {
+    setLeaveEntries([
+      ...leaveEntries,
+      { id: generateId(), date: "", location: "" },
+    ]);
+  };
+
+  const updateLeaveEntry = (id, field, value) => {
+    setLeaveEntries(
+      leaveEntries.map((l) => (l.id === id ? { ...l, [field]: value } : l)),
+    );
+  };
+
+  // --- Screens ---
+
+  // Home page
+  if (screen === "entry") {
+    return (
+      <div className="max-w-auto mx-auto p-4 min-h-screen">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 mt-8">
+          My Diaries
+        </h1>
+        <button
+          onClick={handleNewDiary}
+          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md hover:bg-blue-700 active:scale-95 transition-all mb-8"
+        >
+          + New Diary
+        </button>
+
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Old Diaries
+          </h2>
+          {savedDiaries.length === 0 ? (
+            <p className="text-gray-400 italic text-sm">
+              No diaries saved yet. Create your first one!
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {savedDiaries.map((diary) => (
+                <li
+                  key={diary.id}
+                  onClick={() => handleEditDiary(diary)}
+                  className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  <span className="text-gray-700 font-medium">
+                    {diary.month} {diary.year}
+                  </span>
+                  <span className="text-gray-400">→</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-auto mx-auto p-4 pb-24 min-h-screen relative">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 pt-4">
+        {screen === "editor" && (
+          <>
+            <button
+              onClick={() => setScreen("entry")}
+              className="text-blue-600 font-medium"
+            >
+              ← Back
+            </button>
+            <h1 className="text-xl font-bold text-gray-800">
+              {screen === "preview" ? "Preview" : "Editor"}
+            </h1>
+          </>
+        )}
+        <div className="w-10"></div>
+      </div>
+
+      {screen === "preview" ? (
+        // <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+        //   <h2 className="text-2xl font-bold mb-4">
+        //     Diary: {meta.month} {meta.year}
+        //   </h2>
+
+        //   <h3 className="font-bold text-lg text-blue-600 mt-4 border-b pb-2">
+        //     Travel Entries
+        //   </h3>
+        //   {travelEntries.length === 0 ? (
+        //     <p className="text-gray-400 italic mt-2">No travel entries</p>
+        //   ) : null}
+        //   {travelEntries.map((g, i) => (
+        //     <div
+        //       key={g.id}
+        //       className="mt-4 mb-6 border-l-2 border-blue-200 pl-3"
+        //     >
+        //       <p className="font-semibold text-gray-800">
+        //         Group {i + 1}: {g.groupedReason || "No groupedReason"}
+        //       </p>
+        //       <p className="text-sm text-gray-600">
+        //         Mode: {g?.groupMode} | groupDistance: {g?.groupDistance}km
+        //       </p>
+        //       <div className="mt-2 space-y-2">
+        //         {g.rows.map((r) => (
+        //           <div key={r.id} className="bg-gray-50 p-3 rounded text-sm">
+        //             <p>
+        //               <b>From:</b> {r.from} <b>To:</b> {r.to}
+        //             </p>
+        //             <p>
+        //               <b>Start:</b> {r.startDate} {r.startTime} | <b>End:</b>{" "}
+        //               {r.endDate} {r.endTime}
+        //             </p>
+        //           </div>
+        //         ))}
+        //       </div>
+        //     </div>
+        //   ))}
+
+        //   <h3 className="font-bold text-lg text-purple-600 mt-6 border-b pb-2">
+        //     Leave Entries
+        //   </h3>
+        //   {leaveEntries.length === 0 ? (
+        //     <p className="text-gray-400 italic mt-2">No leave entries</p>
+        //   ) : null}
+        //   <ul className="mt-4 space-y-2">
+        //     {leaveEntries.map((l) => (
+        //       <li
+        //         key={l.id}
+        //         className="bg-purple-50 p-3 rounded text-sm text-purple-900 border border-purple-100"
+        //       >
+        //         <b>Date:</b> {l.date} | <b>Location:</b> {l.location}
+        //       </li>
+        //     ))}
+        //   </ul>
+        // </div>
+        <>
+          <div ref={contentRef}>
+            {/* We pass all current data down to your PDFLayout component */}
+            <PDFLayout data={{ meta, user, travelEntries, leaveEntries }} />
+            {/* <PDFLayout data={ meta, dataPage3} /> */}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-6">
+            {/* Section A: Meta */}
+            <section>
+              {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
+              {/* <h2 className="text-lg font-bold text-gray-800 mb-4">
+              Section A: Meta
+            </h2> */}
+              {/* <label htmlFor="start">Select month and year:</label> */}
+              {/* <input type="month" id="start" name="start"  onChange={(e) => alert(e.target.value) } defaultValue={`${meta.year}-${meta.month}`} /> */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  {/* <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Month
+                  </label>
+                  <select
+                    className="w-full p-2 border rounded-lg bg-gray-50"
+                    value={meta.month}
+                    onChange={(e) =>
+                      setMeta({ ...meta, month: e.target.value })
+                    }
+                  >
+                    {MONTHS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select> */}
+                  <MonthSelect
+                    label="Month"
+                    value={meta.month} // stores "5"
+                    onChange={
+                      (monthStr) => setMeta({ ...meta, month: monthStr })
+                      // updatePendingRow(group.id, "month", monthStr)
+                    }
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="start"
+                    className="block text-xs font-semibold text-gray-500 mb-1"
+                  >
+                    Year
+                  </label>
+                  {/* <input type="Year" id="start" name="start"  onChange={(e) => alert(e.target.value) } value={`${meta.year}`} /> */}
+                  <select
+                    className="w-full p-2 border rounded-lg bg-gray-50"
+                    value={meta.year}
+                    onChange={(e) => setMeta({ ...meta, year: e.target.value })}
+                  >
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            {/* Section B: Travel Entries */}
+            {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {/* Section B:  */}
+                  Travel
+                </h2>
+                {/* <button
+                onClick={addTravelGroup}
+                className="text-blue-600 text-sm font-semibold bg-blue-50 px-3 py-1 rounded-full"
+              >
+                + Group
+              </button> */}
+                <button
+                  onClick={addTravelGroup}
+                  className="text-blue-600 text-sm font-semibold bg-blue-50 px-3 py-1 rounded-full"
+                >
+                  + Entry
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {travelEntries.map((group, index) => (
+                  <div
+                    key={group.id}
+                    // className="p-4 bg-gray-50 border border-gray-200 rounded-xl relative"
+                  >
+                    {/* <span className="absolute -top-3 left-4 bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1 rounded">
+                    Group {index + 1}
+                  </span> */}
+
+                    <div className="space-y-3 mt-2">
+                      {/* <textarea
+                      placeholder="groupedReason for travel..."
+                      className="w-full p-2 border rounded-lg text-sm"
+                      value={group.groupedReason}
+                      onChange={(e) =>
+                        updateTravelGroup(group.id, "groupedReason", e.target.value)
+                      }
+                      rows="2"
+                    /> */}
+                      {/* <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Mode (e.g. Flight)"
+                        className="w-full p-2 border rounded-lg text-sm"
+                        value={group.groupMode}
+                        onChange={(e) =>
+                          updateTravelGroup(group.id, "groupMode", e.target.value)
+                        }
+                      />
+                      <input
+                        type="number"
+                        placeholder="groupDistance (km)"
+                        className="w-full p-2 border rounded-lg text-sm"
+                        value={group.groupDistance}
+                        onChange={(e) =>
+                          updateTravelGroup(
+                            group.id,
+                            "groupDistance",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div> */}
+
+                      {/* Saved Rows List */}
+                      {group.rows.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <p className="text-xs font-bold text-gray-500 uppercase">
+                            Saved Rows
+                          </p>
+                          {group.rows.map((row, rIndex) => (
+                            <div
+                              key={row.id}
+                              className="bg-white p-2 border border-green-200 rounded text-xs flex justify-between items-center shadow-sm"
+                            >
+                              <div>
+                                <p className="font-semibold text-gray-700">
+                                  {row?.from || "N/A"} → {row?.to || "N/A"}
+                                </p>
+                                <p className="text-gray-500">
+                                  {row?.startDate} - {row?.endDate}
+                                  {row?.startTime} {row?.endTime}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() =>
+                                  removeTravelRow(group.id, row.id)
+                                }
+                                className="text-red-400 font-bold p-2 text-lg"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* New Row Input Card (Always Open) */}
+                      <div className="mt-4 p-3 bg-white border border-blue-100 rounded-lg shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-400"></div>
+                        <p className="text-xs font-bold text-blue-500 uppercase ml-2">
+                          New Row Entry
+                        </p>
+
+                        {/* Start/End Date */}
+                        <div className="grid grid-cols-2 gap-2 ml-2">
+                          <div>
+                            <label className="text-[10px] text-gray-400 uppercase">
+                              Start Date
+                            </label>
+                            <input
+                              type="date"
+                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              value={group.pendingRow.startDate}
+                              onChange={(e) =>
+                                updatePendingRow(
+                                  group.id,
+                                  "startDate",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-400 uppercase">
+                              End Date
+                            </label>
+                            <input
+                              type="date"
+                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              value={group.pendingRow.endDate}
+                              onChange={(e) =>
+                                updatePendingRow(
+                                  group.id,
+                                  "endDate",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {/* Start/End Time */}
+                        <div className="grid grid-cols-2 gap-2 ml-2">
+                          <div>
+                            {/* <label className="text-[10px] text-gray-400 uppercase">
+                              Start Time Gujarati
+                            </label>
+                            <input
+                              lang="gu-IN"
+                              type="time"
+                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              value={group.pendingRow.startTime}
+                              onChange={
+                                updatePendingRow(
+                                  group.id,
+                                  "startTime",
+                                  e.target.value,
+                                )
+                              }
+                            /> */}
+                            <TimePicker24hr
+                              className="p-2 border rounded-md text-xs bg-gray-50"
+                              label="Start Time"
+                              value={group.pendingRow.startTime}
+                              onChange={(timeString) =>
+                                updatePendingRow(
+                                  group.id,
+                                  "startTime",
+                                  timeString,
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            {/* <label className="text-[10px] text-gray-400 uppercase">
+                              End Time
+                            </label> */}
+                            <TimePicker24hr
+                              className="text-xs bg-gray-50"
+                              label="End Time"
+                              value={group.pendingRow.endTime}
+                              onChange={(timeString) =>
+                                updatePendingRow(
+                                  group.id,
+                                  "endTime",
+                                  timeString,
+                                )
+                              }
+                            />
+                            {/* <input
+                            type="time"
+                            value={group.pendingRow.endTime}
+                            onChange={(e) =>
+                              updatePendingRow(
+                                group.id,
+                                "endTime",
+                                e.target.value,
+                              )
+                            }
+                          /> */}
+                          </div>
+                        </div>
+
+                        {/* From/To */}
+                        <div className="grid grid-cols-2 gap-2 ml-2">
+                          <div>
+                            <label className="text-[10px] text-gray-400 uppercase">
+                              From
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="City A"
+                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              value={group.pendingRow.from}
+                              onChange={(e) =>
+                                updatePendingRow(
+                                  group.id,
+                                  "from",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-400 uppercase">
+                              To
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="City B"
+                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              value={group.pendingRow.to}
+                              onChange={(e) =>
+                                updatePendingRow(group.id, "to", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => commitRow(group.id)}
+                          className="ml-2 w-[calc(100%-8px)] mt-2 border-2 border-blue-600 bg-blue-50 text-blue-700 text-sm font-semibold py-2 rounded-lg hover:bg-blue-100 transition shadow-sm"
+                        >
+                          + Add Row Data
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Section C: Leave Diary */}
+            {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {/* Section C: */}
+                  Leave
+                </h2>
+                <button
+                  onClick={addLeaveEntry}
+                  className="text-purple-600 text-sm font-semibold bg-purple-50 px-3 py-1 rounded-full"
+                >
+                  + Entry
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {leaveEntries.map((leave, index) => (
+                  <div key={leave.id} className="flex gap-2 items-center">
+                    <span className="text-xs font-bold text-gray-400 w-4">
+                      {index + 1}.
+                    </span>
+                    <input
+                      type="date"
+                      className="w-1/3 p-2 border rounded-lg text-sm"
+                      value={leave.date}
+                      onChange={(e) =>
+                        updateLeaveEntry(leave.id, "date", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      className="w-2/3 p-2 border rounded-lg text-sm"
+                      value={leave.location}
+                      onChange={(e) =>
+                        updateLeaveEntry(leave.id, "location", e.target.value)
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </>
+      )}
+
+      {/* Bottom Actions - Fixed */}
+      {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-center gap-3 z-10">
+        <div className="max-w-md w-full flex gap-3">
+          {screen !== "preview" && (
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-green-600 text-white font-semibold py-3 rounded-xl shadow hover:bg-green-700 active:scale-95 transition-all"
+            >
+              Save
+            </button>
+          )}
+
+          <button
+            onClick={() =>
+              setScreen(screen === "preview" ? "editor" : "preview")
+            }
+            className="flex-1 bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 active:scale-95 transition-all"
+          >
+            {screen === "preview" ? "Back to Edit" : "Preview"}
+          </button>
+        </div>
+      </div> */}
+      {/* Bottom Actions - Fixed */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-center gap-3 z-10">
+        <div className="max-w-md w-full flex gap-3">
+          {screen !== "preview" ? (
+            <>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-green-600 text-white font-semibold py-3 rounded-xl shadow hover:bg-green-700 active:scale-95 transition-all"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setScreen("preview")}
+                className="flex-1 bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 active:scale-95 transition-all"
+              >
+                Preview
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setScreen("editor")}
+                className="flex-1 bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 active:scale-95 transition-all"
+              >
+                Back to Edit
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex-1 bg-purple-600 text-white font-semibold py-3 rounded-xl shadow hover:bg-purple-700 active:scale-95 transition-all"
+              >
+                Print PDF
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

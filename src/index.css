@@ -1,0 +1,97 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati&display=swap");
+@import "tailwindcss";
+
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+body {
+  /* margin: 0; */
+  font-family: "Noto Sans Gujarati", sans-serif;
+  font-size: 17.2 5px;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  padding: 20mm;
+  padding-left: 30mm;
+  /* padding: 10mm; */
+  /* margin: 10mm; */
+  /* margin-left: 30mm; */
+  box-sizing: border-box;
+  position: relative;
+}
+
+.page-break {
+  page-break-before: always;
+}
+
+.header p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.subject {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.user-info {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.travel-table, .leave-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: fixed;
+}
+
+.travel-table th,
+.travel-table,
+.leave-table th,
+.leave-table td {
+  border: 0.67px solid black;
+  font-weight: lighter;
+  padding: 3px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.travel-table td{
+    border-right: 0.5px solid black;
+}
+
+.travel-table th:nth-child(1) {
+  width: 14%;
+}
+.travel-table th:nth-child(2) {
+  width: 14%;
+}
+.travel-table th:nth-child(3) {
+  width: 30%;
+}
+.travel-table th:nth-child(4) {
+  width: 14%;
+}
+.travel-table th:nth-child(5) {
+  width: 14%;
+}
+.travel-table th:nth-child(6) {
+  width: 14%;
+}
+
+.footer {
+  /* position: absolute; */
+  bottom: 20mm;
+  right: 10mm;
+  text-align: right;
+}
+.signature {
+  margin-top: 8mm;
+}
