@@ -1,11 +1,9 @@
 import React from "react";
-import { dataPage3 } from "../../../data/sampleData";
+
 import { toGujarati } from "../../../utils/numbers";
 import { formatDate_ddMMyyyy, getGujaratiDay } from "../../../utils/dateFormat";
-// export default function Page1({ data }) {
 export default function Page2({data}) {
-  // const { month, year, user, leaveEntries } = dataPage3;
-  // const { month, year, user, leaveEntries } = data;
+ 
   const { meta, user, leaveEntries } = data;
 
   return (
@@ -20,7 +18,6 @@ export default function Page2({data}) {
 
       <div className="subject">
         વિષય:- માહે {toGujarati(meta?.month)}/{toGujarati(meta?.year)} ની રજા ડાયરી બાબત.
-        {/* વિષય:- માહે {toGujarati(meta?.month)}/{toGujarati(meta?.year)} ની રજા ડાયરી બાબત. */}
       </div>
 
       <div className="user-info">
@@ -40,7 +37,6 @@ export default function Page2({data}) {
           </thead>
         <tbody>
           {leaveEntries.map((entry, index) => (
-            // group.rows.map((row, rIndex) => (
             <tr key={index}>
               <td>{toGujarati(index+1)}</td>
               <td>{toGujarati(formatDate_ddMMyyyy(entry?.date))}</td>
