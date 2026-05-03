@@ -11,6 +11,51 @@ body {
   /* margin: 0; */
   font-family: "Noto Sans Gujarati", sans-serif;
   font-size: 17.2 5px;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.app-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1rem;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.app-input {
+  width: 100%;
+  min-height: 44px;
+  border: 0.5px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  padding: 0.625rem 0.75rem;
+  color: #334155;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.app-input:focus {
+  border-color: #0f766e;
+  background: #fff;
+  /* box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14); */
+}
+
+.pdf-preview-shell {
+  --preview-scale: min(1, calc((100vw - 32px) / 794px));
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.pdf-preview-shell .pdf-print-area {
+  width: 210mm;
+  margin: 0 auto;
+  zoom: var(--preview-scale);
 }
 
 .page {
@@ -23,6 +68,7 @@ body {
   /* margin-left: 30mm; */
   box-sizing: border-box;
   position: relative;
+  background: white;
 }
 
 .page-break {
@@ -94,4 +140,52 @@ body {
 }
 .signature {
   margin-top: 8mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body.is-printing {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .pdf-print-area {
+    display: block !important;
+    width: 210mm;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+
+  .pdf-preview-shell {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 !important;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }

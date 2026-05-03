@@ -4,7 +4,7 @@ import Page2 from "./Page2";
 export default function PDFLayout({ data }) {
   return (
     <>
-      <div id="pdf-root">
+      <div >
         <Page1 data={data} />
         <div className="page-break" />
         <Page2 data={data} />

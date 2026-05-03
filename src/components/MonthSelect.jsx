@@ -22,11 +22,11 @@ export default function MonthSelect({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="app-label">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded border border-gray-300 px-3 py-2 bg-white"
+        className="app-input"
       >
         <option value="">મહિનો પસંદ કરો</option>
         {GUJARATI_MONTHS.map((m) => (

@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Dexie from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PDFLayout from "../components/pdf/PDFLayout";
-import { dataPage3 } from "../../data/sampleData";
-dataPage3;
-import { toGujarati } from "../../utils/numbers";
 import TimePicker24hr from "../components/TimePicker24hr";
 import MonthSelect from "../components/MonthSelect";
 // --- Database Setup ---
@@ -15,33 +11,22 @@ db.version(1).stores({
   diaries: "++id, month, year", // Indexed fields. Data like travelEntries is stored but doesn't need indexing here.
 });
 
-const MONTHS = [
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "11",
-  "12",
-  // "January",
-  // "February",
-  // "March",
-  // "April",
-  // "May",
-  // "June",
-  // "July",
-  // "August",
-  // "September",
-  // "October",
-  // "November",
-  // "December",
-];
 const YEARS = ["2026", "2027", "2028", "2029", "2030", "2031", "2032"];
+
+const appShellClass =
+  "min-h-screen bg-slate-50 text-slate-800";
+const pageContainerClass =
+  "mx-auto max-w-2xl px-4 pb-28 pt-5";
+const sectionClass =
+  "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
+const iconButtonClass =
+  "grid h-10 w-10 place-items-center text-red-500 text-xl transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95";
+const primaryButtonClass =
+  "rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 active:scale-95";
+const secondaryButtonClass =
+  "rounded-xl px-4 py-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 active:scale-95";
+const dangerButtonClass =
+  "text-lg px-3  text-sm font-semibold text-red-600 transition hover:bg-red-100 active:scale-95";
 
 const emptyRow = {
   startDate: "",
@@ -65,10 +50,30 @@ export default function Home() {
   const [leaveEntries, setLeaveEntries] = useState([]);
 
   const contentRef = useRef(null);
+  const leaveEndRef = useRef(null);
+  const previousTitleRef = useRef(document.title);
+  const getPrintTitle = () => `Diary_${meta.month || "Month"}_${meta.year || "Year"}`;
 
   const handlePrint = useReactToPrint({
-    contentRef: contentRef,
-    documentTitle: `Diary_${meta.month}_${meta.year}`,
+    contentRef,
+    documentTitle: getPrintTitle,
+    bodyClass: "print-frame",
+    pageStyle: `
+      @page { size: A4; margin: 0; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      .page { width: 210mm; height: 297mm; box-sizing: border-box; }
+      .page-break { break-before: page; page-break-before: always; }
+      .no-print { display: none !important; }
+    `,
+    onBeforePrint: async () => {
+      previousTitleRef.current = document.title;
+      document.title = getPrintTitle();
+      document.body.classList.add("is-printing");
+    },
+    onAfterPrint: () => {
+      document.title = previousTitleRef.current || "TAPWA";
+      document.body.classList.remove("is-printing");
+    },
   });
 
   // Set Default Month/Year
@@ -103,6 +108,20 @@ export default function Home() {
     setTravelEntries(diary.travelEntries || []);
     setLeaveEntries(diary.leaveEntries || []);
     setScreen("editor");
+  };
+
+  const handleDeleteDiary = async (event, diaryId) => {
+    event.stopPropagation();
+    const shouldDelete = window.confirm("Delete this diary?");
+    if (!shouldDelete) return;
+
+    await db.diaries.delete(diaryId);
+    if (currentId === diaryId) {
+      setCurrentId(null);
+      setDefaultMeta();
+      setTravelEntries([]);
+      setLeaveEntries([]);
+    }
   };
 
   const user = {
@@ -195,6 +214,13 @@ export default function Home() {
       ...leaveEntries,
       { id: generateId(), date: "", location: "" },
     ]);
+
+    requestAnimationFrame(() => {
+      leaveEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
   };
 
   const updateLeaveEntry = (id, field, value) => {
@@ -203,28 +229,38 @@ export default function Home() {
     );
   };
 
+  const removeLeaveEntry = (id) => {
+    setLeaveEntries(leaveEntries.filter((l) => l.id !== id));
+  };
+
   // --- Screens ---
 
   // Home page
   if (screen === "entry") {
     return (
-      <div className="max-w-auto mx-auto p-4 min-h-screen">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 mt-8">
-          My Diaries
-        </h1>
+      <div className={appShellClass}>
+        <main className={pageContainerClass}>
+        <div className="mb-6 pt-4">
+          {/* <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">
+            TAPWA
+          </p> */}
+          <h1 className="mt-1 text-3xl font-bold text-slate-900">
+            My Diaries
+          </h1>
+        </div>
         <button
           onClick={handleNewDiary}
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md hover:bg-blue-700 active:scale-95 transition-all mb-8"
+          className={`${primaryButtonClass} mb-8 w-full`}
         >
           + New Diary
         </button>
 
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
             Old Diaries
           </h2>
           {savedDiaries.length === 0 ? (
-            <p className="text-gray-400 italic text-sm">
+            <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
               No diaries saved yet. Create your first one!
             </p>
           ) : (
@@ -233,34 +269,44 @@ export default function Home() {
                 <li
                   key={diary.id}
                   onClick={() => handleEditDiary(diary)}
-                  className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-1 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/40 active:scale-[0.98]"
                 >
-                  <span className="text-gray-700 font-medium">
-                    {diary.month} {diary.year}
+                  <span className="flex-1 font-semibold text-slate-800">
+                      {diary.month} - {diary.year}
                   </span>
-                  <span className="text-gray-400">→</span>
+                  <button
+                    type="button"
+                    onClick={(event) => handleDeleteDiary(event, diary.id)}
+                    className={`${iconButtonClass} order-3`}
+                    aria-label="Delete diary"
+                  >
+                    ×
+                  </button>
+                  {/* <span className="text-gray-400">→</span> */}
                 </li>
               ))}
             </ul>
           )}
         </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="max-w-auto mx-auto p-4 pb-24 min-h-screen relative">
+    <div className={appShellClass}>
+      <main className={screen === "preview" ? "pb-28 pt-4" : pageContainerClass}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pt-4">
+      <div className="mb-6 flex items-center justify-between pt-1">
         {screen === "editor" && (
           <>
             <button
               onClick={() => setScreen("entry")}
-              className="text-blue-600 font-medium"
+              className="font-medium text-teal-700"
             >
               ← Back
             </button>
-            <h1 className="text-xl font-bold text-gray-800">
+            <h1 className="text-xl font-bold text-slate-900 ">
               {screen === "preview" ? "Preview" : "Editor"}
             </h1>
           </>
@@ -325,17 +371,18 @@ export default function Home() {
         //   </ul>
         // </div>
         <>
-          <div ref={contentRef}>
-            {/* We pass all current data down to your PDFLayout component */}
-            <PDFLayout data={{ meta, user, travelEntries, leaveEntries }} />
-            {/* <PDFLayout data={ meta, dataPage3} /> */}
+          <div className="pdf-preview-shell">
+            <div ref={contentRef} className="pdf-print-area">
+              {/* We pass all current data down to your PDFLayout component */}
+              <PDFLayout data={{ meta, user, travelEntries, leaveEntries }} />
+            </div>
           </div>
         </>
       ) : (
         <>
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Section A: Meta */}
-            <section>
+            <section className={sectionClass}>
               {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
               {/* <h2 className="text-lg font-bold text-gray-800 mb-4">
               Section A: Meta
@@ -372,13 +419,13 @@ export default function Home() {
                 <div>
                   <label
                     htmlFor="start"
-                    className="block text-xs font-semibold text-gray-500 mb-1"
+                    className="app-label"
                   >
                     Year
                   </label>
                   {/* <input type="Year" id="start" name="start"  onChange={(e) => alert(e.target.value) } value={`${meta.year}`} /> */}
                   <select
-                    className="w-full p-2 border rounded-lg bg-gray-50"
+                    className="app-input"
                     value={meta.year}
                     onChange={(e) => setMeta({ ...meta, year: e.target.value })}
                   >
@@ -394,9 +441,9 @@ export default function Home() {
 
             {/* Section B: Travel Entries */}
             {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
-            <section>
+            <section className={sectionClass}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-800">
+                <h2 className="text-lg font-bold text-slate-900">
                   {/* Section B:  */}
                   Travel
                 </h2>
@@ -408,7 +455,7 @@ export default function Home() {
               </button> */}
                 <button
                   onClick={addTravelGroup}
-                  className="text-blue-600 text-sm font-semibold bg-blue-50 px-3 py-1 rounded-full"
+                  className={secondaryButtonClass}
                 >
                   + Entry
                 </button>
@@ -462,19 +509,19 @@ export default function Home() {
                       {/* Saved Rows List */}
                       {group.rows.length > 0 && (
                         <div className="mt-4 space-y-2">
-                          <p className="text-xs font-bold text-gray-500 uppercase">
+                          <p className="text-xs font-bold uppercase text-slate-500">
                             Saved Rows
                           </p>
                           {group.rows.map((row, rIndex) => (
                             <div
                               key={row.id}
-                              className="bg-white p-2 border border-green-200 rounded text-xs flex justify-between items-center shadow-sm"
+                              className="flex items-center justify-between rounded-xl border border-teal-100 bg-teal-50/50 p-3 text-xs shadow-sm"
                             >
                               <div>
-                                <p className="font-semibold text-gray-700">
+                                <p className="font-semibold text-slate-700">
                                   {row?.from || "N/A"} → {row?.to || "N/A"}
                                 </p>
-                                <p className="text-gray-500">
+                                <p className="text-slate-500">
                                   {row?.startDate} - {row?.endDate}
                                   {row?.startTime} {row?.endTime}
                                 </p>
@@ -483,7 +530,7 @@ export default function Home() {
                                 onClick={() =>
                                   removeTravelRow(group.id, row.id)
                                 }
-                                className="text-red-400 font-bold p-2 text-lg"
+                                className={dangerButtonClass}
                               >
                                 ×
                               </button>
@@ -493,21 +540,21 @@ export default function Home() {
                       )}
 
                       {/* New Row Input Card (Always Open) */}
-                      <div className="mt-4 p-3 bg-white border border-blue-100 rounded-lg shadow-sm space-y-3 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-400"></div>
-                        <p className="text-xs font-bold text-blue-500 uppercase ml-2">
+                      <div className="relative mt-4 space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                        <div className="absolute left-0 top-0 h-full w-1 bg-teal-600"></div>
+                        <p className="ml-2 text-xs font-bold uppercase text-teal-700">
                           New Row Entry
                         </p>
 
                         {/* Start/End Date */}
                         <div className="grid grid-cols-2 gap-2 ml-2">
                           <div>
-                            <label className="text-[10px] text-gray-400 uppercase">
+                            <label className="app-label">
                               Start Date
                             </label>
                             <input
                               type="date"
-                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              className="app-input text-xs"
                               value={group.pendingRow.startDate}
                               onChange={(e) =>
                                 updatePendingRow(
@@ -519,12 +566,12 @@ export default function Home() {
                             />
                           </div>
                           <div>
-                            <label className="text-[10px] text-gray-400 uppercase">
+                            <label className="app-label">
                               End Date
                             </label>
                             <input
                               type="date"
-                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              className="app-input text-xs"
                               value={group.pendingRow.endDate}
                               onChange={(e) =>
                                 updatePendingRow(
@@ -557,7 +604,7 @@ export default function Home() {
                               }
                             /> */}
                             <TimePicker24hr
-                              className="p-2 border rounded-md text-xs bg-gray-50"
+                              className="text-xs"
                               label="Start Time"
                               value={group.pendingRow.startTime}
                               onChange={(timeString) =>
@@ -602,13 +649,13 @@ export default function Home() {
                         {/* From/To */}
                         <div className="grid grid-cols-2 gap-2 ml-2">
                           <div>
-                            <label className="text-[10px] text-gray-400 uppercase">
+                            <label className="app-label">
                               From
                             </label>
                             <input
                               type="text"
                               placeholder="City A"
-                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              className="app-input text-xs"
                               value={group.pendingRow.from}
                               onChange={(e) =>
                                 updatePendingRow(
@@ -620,13 +667,13 @@ export default function Home() {
                             />
                           </div>
                           <div>
-                            <label className="text-[10px] text-gray-400 uppercase">
+                            <label className="app-label">
                               To
                             </label>
                             <input
                               type="text"
                               placeholder="City B"
-                              className="w-full p-2 border rounded-md text-xs bg-gray-50"
+                              className="app-input text-xs"
                               value={group.pendingRow.to}
                               onChange={(e) =>
                                 updatePendingRow(group.id, "to", e.target.value)
@@ -637,7 +684,7 @@ export default function Home() {
 
                         <button
                           onClick={() => commitRow(group.id)}
-                          className="ml-2 w-[calc(100%-8px)] mt-2 border-2 border-blue-600 bg-blue-50 text-blue-700 text-sm font-semibold py-2 rounded-lg hover:bg-blue-100 transition shadow-sm"
+                          className={`${secondaryButtonClass} ml-2 mt-2 w-[calc(100%-8px)] border border-teal-200 bg-teal-200`}
                         >
                           + Add Row Data
                         </button>
@@ -650,15 +697,15 @@ export default function Home() {
 
             {/* Section C: Leave Diary */}
             {/* <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-100"> */}
-            <section>
+            <section className={sectionClass}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-800">
+                <h2 className="text-lg font-bold text-slate-900">
                   {/* Section C: */}
                   Leave
                 </h2>
                 <button
                   onClick={addLeaveEntry}
-                  className="text-purple-600 text-sm font-semibold bg-purple-50 px-3 py-1 rounded-full"
+                  className={secondaryButtonClass}
                 >
                   + Entry
                 </button>
@@ -666,13 +713,13 @@ export default function Home() {
 
               <div className="space-y-3">
                 {leaveEntries.map((leave, index) => (
-                  <div key={leave.id} className="flex gap-2 items-center">
-                    <span className="text-xs font-bold text-gray-400 w-4">
+                  <div key={leave.id} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <span className="text-xs font-bold text-slate-500">
                       {index + 1}.
                     </span>
                     <input
                       type="date"
-                      className="w-1/3 p-2 border rounded-lg text-sm"
+                      className=" flex-[0_0_38%] text-sm border-none"
                       value={leave.date}
                       onChange={(e) =>
                         updateLeaveEntry(leave.id, "date", e.target.value)
@@ -681,19 +728,30 @@ export default function Home() {
                     <input
                       type="text"
                       placeholder="Location"
-                      className="w-2/3 p-2 border rounded-lg text-sm"
+                      className="min-w-0 flex-1 text-sm text-center"
                       value={leave.location}
                       onChange={(e) =>
                         updateLeaveEntry(leave.id, "location", e.target.value)
                       }
                     />
+                    <button
+                      type="button"
+                      onClick={() => removeLeaveEntry(leave.id)}
+                      className={dangerButtonClass}
+                      aria-label="Delete leave entry"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
+                <div ref={leaveEndRef} />
               </div>
             </section>
           </div>
         </>
       )}
+
+      </main>
 
       {/* Bottom Actions - Fixed */}
       {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-center gap-3 z-10">
@@ -718,19 +776,19 @@ export default function Home() {
         </div>
       </div> */}
       {/* Bottom Actions - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-center gap-3 z-10">
+      <div className="no-print fixed bottom-0 left-0 right-0 z-10 flex justify-center gap-3 border-t border-slate-200 bg-white/95 p-4 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] backdrop-blur">
         <div className="max-w-md w-full flex gap-3">
           {screen !== "preview" ? (
             <>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-green-600 text-white font-semibold py-3 rounded-xl shadow hover:bg-green-700 active:scale-95 transition-all"
+                className={`${primaryButtonClass} flex-1`}
               >
                 Save
               </button>
               <button
                 onClick={() => setScreen("preview")}
-                className="flex-1 bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 active:scale-95 transition-all"
+                className={`${secondaryButtonClass}  border border-teal-200 bg-teal-200 flex-1 hover:text-white hover:bg-teal-700`}
               >
                 Preview
               </button>
@@ -739,13 +797,13 @@ export default function Home() {
             <>
               <button
                 onClick={() => setScreen("editor")}
-                className="flex-1 bg-blue-100 text-blue-700 font-semibold py-3 rounded-xl hover:bg-blue-200 active:scale-95 transition-all"
+                className={`border border-teal-200 bg-teal-200 ${secondaryButtonClass} flex-1`}
               >
                 Back to Edit
               </button>
               <button
                 onClick={handlePrint}
-                className="flex-1 bg-purple-600 text-white font-semibold py-3 rounded-xl shadow hover:bg-purple-700 active:scale-95 transition-all"
+                className={`${primaryButtonClass} flex-1`}
               >
                 Print PDF
               </button>

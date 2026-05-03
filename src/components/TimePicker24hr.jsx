@@ -1,5 +1,4 @@
 // components/TimePicker24hr.jsx
-import { useState } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
@@ -12,8 +11,6 @@ export default function TimePicker24hr({
   label = "End Time",
   value,
   onChange,
-  error = false,
-  helperText = "",
   className = "",
 }) {
   return (
@@ -36,7 +33,28 @@ export default function TimePicker24hr({
             sx: {
               // Override MUI styles to match Tailwind
               "& .MuiOutlinedInput-root": {
-                borderRadius: "0.5rem",
+                borderRadius: "0.75rem",
+                backgroundColor: "#f8fafc",
+                color: "#334155",
+                fontSize: "0.875rem",
+                minHeight: "44px",
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#cbd5e1",
+              },
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#0f766e",
+              },
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#0f766e",
+                borderWidth: "2px",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#64748b",
+                fontSize: "0.875rem",
+              },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: "#0f766e",
               },
             },
           },
