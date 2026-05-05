@@ -114,10 +114,10 @@ body {
 }
 
 .travel-table th:nth-child(1) {
-  width: 14%;
+  width: 16%;
 }
 .travel-table th:nth-child(2) {
-  width: 14%;
+  width: 16%;
 }
 .travel-table th:nth-child(3) {
   width: 30%;
@@ -126,10 +126,10 @@ body {
   width: 14%;
 }
 .travel-table th:nth-child(5) {
-  width: 14%;
+  width: 13%;
 }
 .travel-table th:nth-child(6) {
-  width: 14%;
+  width: 12%;
 }
 
 .footer {
