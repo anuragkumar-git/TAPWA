@@ -11,9 +11,9 @@ export const dataPage1 = {
     travelEntries: [
         {
             startDate: "૧/૪/૨૦૨૬",
-            startTime: null,
+            startTime: "",
             endDate: "૮/૪/૨૦૨૬",
-            endTime: null,
+            endTime: "",
             from: "ગાંધીનગર",
             to: "મુકામ",
         },
