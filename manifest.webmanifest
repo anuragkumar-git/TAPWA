@@ -1,0 +1,1 @@
+{"name":"T.A. Diary","short_name":"T.A. Diary","description":"Offline First Travel Allowance PWA","start_url":"/TAPWA/","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","lang":"en","scope":"/TAPWA/","icons":[{"src":"pwa.png","sizes":"192x192","type":"image/png"},{"src":"pwa1.png","sizes":"512x512","type":"image/png"}]}
