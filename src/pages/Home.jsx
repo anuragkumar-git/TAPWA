@@ -288,8 +288,8 @@ export default function Home() {
       {
         id: generateId(),
         defaultGroupedReason:
-          "àª®àª¾. àª®àª¾àªœà«€ àª®àª‚àª¤à«àª°à«€ àª¶à«àª°à«€ àªœàª¯àª¦à«àª°àª¥àª¸àª¿àª‚àª¹ àªªàª°àª®àª¾àª° àª¸àª¾àª¹à«‡àª¬àª¨àª¾ àª…àª‚àª—àª°àª•à«àª·àª• àª¤àª°à«€àª•à«‡ àª«àª°àªœ",
-        defaultGroupMode: "àª¸àª°àª•àª¾àª°à«€ àªµàª¾àª¹àª¨",
+          "મા. માજી મંત્રી શ્રી જયદ્રથસિંહ પરમાર સાહેબના અંગરક્ષક તરીકે ફરજ",
+        defaultGroupMode: "સરકારી વાહન",
         defaultGroupDistance: null,
         groupedReason: preferences.travelDefaults.groupedReason,
         groupMode: preferences.travelDefaults.groupMode,
@@ -368,6 +368,28 @@ export default function Home() {
     setLeaveEntries(leaveEntries.filter((l) => l.id !== id));
   };
 
+  const shareData = {
+    title: "TAPWA",
+    text: "create your T.A.",
+    url: "https://anuragkumar-git.github.io/TAPWA/",
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("error sharing:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        alert("Link copied to clipboard!(Share API not supported)");
+      } catch (error) {
+        console.error("Could not copy text: ", err);
+      }
+    }
+  };
   // --- Screens ---
 
   // Home page
@@ -375,7 +397,7 @@ export default function Home() {
     return (
       <div className={appShellClass}>
         <main className={pageContainerClass}>
-          <div className="mb-6 flex items-center gap-3 pt-4">
+          <div className="mb-6 flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsPreferencesOpen(true)}
@@ -387,8 +409,13 @@ export default function Home() {
             {/* <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">
             TAPWA
           </p> */}
-            <h1 className="mt-1 text-3xl font-bold text-slate-900">
-              My Diaries
+            <h1 className="text-3xl font-bold text-slate-900">
+              <a
+                href="https://anuragkumar-git.github.io/anurag-portfolio/"
+                target="_blank"
+              >
+                My Diaries
+              </a>
             </h1>
           </div>
           <button
@@ -407,6 +434,7 @@ export default function Home() {
                 No diaries saved yet. Create your first one!
               </p>
             ) : (
+              //Diary list
               <ul className="space-y-3">
                 {savedDiaries.map((diary) => (
                   <li
@@ -454,8 +482,14 @@ export default function Home() {
           </div>
         </main>
         {isPreferencesOpen && (
-          <div className="no-print fixed inset-0 z-20 bg-slate-900/40">
-            <div className="h-full w-[min(92vw,380px)] overflow-y-auto bg-white p-5 shadow-xl">
+          <div
+            className="no-print fixed inset-0 z-20 bg-slate-900/40"
+            onClick={() => setIsPreferencesOpen(false)}
+          >
+            <div
+              className="h-full w-[min(92vw,380px)] overflow-y-auto bg-white p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900">
                   Preferences
@@ -466,7 +500,7 @@ export default function Home() {
                   // className={dangerButtonClass }
                   className={`${dangerButtonClass} hover:rounded-md hover:mt-1`}
                 >
-                  ×
+                  Close
                 </button>
               </div>
 
@@ -506,7 +540,6 @@ export default function Home() {
                     </div>
                   </div>
                 </section>
-
                 <section className="space-y-3">
                   <h3 className="font-semibold text-slate-800">
                     Travel Defaults
@@ -558,7 +591,6 @@ export default function Home() {
                     </div>
                   </div>
                 </section>
-
                 <button
                   type="button"
                   onClick={savePreferences}
@@ -566,15 +598,31 @@ export default function Home() {
                 >
                   Save Preferences
                 </button>
+                <button
+                  type="button"
+                  this
+                  line
+                  onClick={handleShare}
+                  className={`${primaryButtonClass} w-full`}
+                >
+                  Share App
+                </button>
+                {/* - add user instructions */}
               </div>
             </div>
           </div>
         )}
-
+        {/* export text dialog box */}
         {exportText && (
-          <div className="no-print fixed inset-0 z-20 grid place-items-center bg-slate-900/40 p-4">
-            <div className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl"
-             >
+          <div
+            className="no-print fixed inset-0 z-20 grid place-items-center bg-slate-900/40 p-4"
+            onClick={() => setExportText("")}
+          >
+            {/* Added min-w-0 to prevent the container from expanding past the screen */}
+            <div
+              className="w-full max-w-2xl min-w-0 rounded-2xl bg-white p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -587,15 +635,15 @@ export default function Home() {
                   onClick={() => setExportText("")}
                   className={dangerButtonClass}
                 >
-                  ⨉
+                  Close
                 </button>
               </div>
-              {/* <pre className="max-h-[55vh] overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-50">
-                {exportText}
-              </pre> */}
-              <p className="max-h-[55vh] overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-50">
-                {exportText}
-              </p>
+
+              {/* Added whitespace-pre and block to the code tag */}
+              <pre className="max-h-[55vh] w-full overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-50 whitespace-pre">
+                <code className="block min-w-full">{exportText}</code>
+              </pre>
+
               <button
                 type="button"
                 onClick={handleCopyExportText}
@@ -637,6 +685,8 @@ export default function Home() {
               </button>
             </>
           )}
+
+          {/* pdf bg */}
           {screen !== "editor" && <div className="w-10"></div>}
         </div>
 
@@ -1229,7 +1279,7 @@ export default function Home() {
         </div>
       </div>
 
-      {isPreferencesOpen && (
+      {/* {isPreferencesOpen && (
         <div className="no-print fixed inset-0 z-20 bg-slate-900/40">
           <div className="h-full w-[min(92vw,380px)] overflow-y-auto bg-white p-5 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
@@ -1340,7 +1390,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {exportText && (
         <div className="no-print fixed inset-0 z-20 grid place-items-center bg-slate-900/40 p-4">
@@ -1357,11 +1407,11 @@ export default function Home() {
                 onClick={() => setExportText("")}
                 className={dangerButtonClass}
               >
-                ⨉
+                1360
               </button>
             </div>
             <pre className="max-h-[55vh] overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-50">
-              {exportText}
+              <code>{exportText}</code>
             </pre>
             <button
               type="button"
@@ -1375,8 +1425,14 @@ export default function Home() {
       )}
 
       {isImportOpen && (
-        <div className="no-print fixed inset-0 z-20 grid place-items-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl">
+        <div
+          className="no-print fixed inset-0 z-20 grid place-items-center bg-slate-900/40 p-4"
+          onClick={() => setIsImportOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -1391,7 +1447,8 @@ export default function Home() {
                 onClick={() => setIsImportOpen(false)}
                 className={dangerButtonClass}
               >
-                ⨉
+                Close
+                {/* 1379 */}
               </button>
             </div>
             <textarea
